@@ -1,41 +1,60 @@
-
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
-
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
+#include <errno.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
-int main() {
-	
+int main(int argc, char** argv) {
 
-	 char server_msg[256] ="Ni hao";
-	 int network_socket;
-	 network_socket = socket(AF_INET,SOCK_STREAM,0);
+    int socket_fd;
+    struct sockaddr_in serverAddr;
+    char text[SIZE];
+   char msg[SIZE-20];
+   char name[20];
+   char get_msg[1024];
+    int byte;
+    // Nick
+    printf("Please enter message:"); 
+    scanf("%s",name);
+    //Create Socket
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if(socket_fd == -1)
+        perror("Error on Socket");
 
-	 struct sockaddr_in server_address;
-	 server_address.sin_family=AF_INET;
-	 server_address.sin_port = htons (2530);
-	 server_address.sin_addr.s_addr=inet_addr("192.168.88.130");
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(2530);
+    serverAddr.sin_addr.s_addr =inet_addr("192.168.88.130");
+    memset(&(serverAddr.sin_zero), '\0', 8);
 
-	 int status = connect(network_socket,(struct sockaddr *) &server_address,sizeof(server_address));
+    // Connect to server
+    if(connect(socket_fd, (struct sockaddr *)&serverAddr, sizeof(struct sockaddr)) == -1){
+        perror("Error on Connect");}
+    puts("Connected");
+    while(1)
+    {
+        //Get message
+        printf(">>>"); scanf("%s",msg);
+        //Edit message
+        strcpy(text, name);
+        strcat(text, " : ");
+        strcat(text, msg);
+        //Send message
+        byte = send(socket_fd, text, strlen(text), 0);
+        if(byte == -1)
+            perror("Error on Send");
+        else if(byte == 0)
+            printf("Connection've been closed");
+        //Get reply to other users
 
-	 if (status == -1) {
+        recv(socket_fd, &get_msg, SIZE-1, 0);
+        printf("Getting message %s", get_msg);
+    }
+    //Close socket
+    close(socket_fd);
 
-	 	printf("There was an error %s\n" );
-	 }
-
-
-      send(network_socket,server_msg,sizeof(server_msg),0);
-
-      char server_response [256];
-      recv(network_socket,&server_response,sizeof(server_response),0);
-
-      printf("server message : %s\n", server_response );
-      close(network_socket);
-
-      return 0;
-
+    return (EXIT_SUCCESS);
 }
